@@ -491,3 +491,9 @@ table.data td { padding: 8px 10px; border-bottom: 1px solid var(--line); white-s
 .deep-list dt { font-weight: 600; color: var(--brass); }
 .deep-list dd { margin: 0; }
 @media (max-width: 600px) { .deep-list { grid-template-columns: minmax(0, 1fr); gap: 2px; } .deep-list dd { margin-bottom: 8px; } }
+
+.cmp { display: grid; gap: 6px; border-top: 1px solid var(--line); padding-top: 10px; }
+.cmp-row { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 10px; align-items: center; }
+.cmp-label { font-size: 13px; font-weight: 600; color: var(--muted); }
+.cmp p { font-size: 14px; }
+@media (max-width: 500px) { .cmp-row { grid-template-columns: minmax(0, 1fr); gap: 2px; } }

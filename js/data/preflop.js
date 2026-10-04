@@ -10,8 +10,12 @@
  * Scenario groups:
  *   rfi    - first to act ("raise first in")
  *   vsOpen - facing a single open raise
- *   vs3bet - you opened and got 3-bet; only hands from your opening range
- *            reach this spot (see `from`)
+ *   vsLimp  - one or more players limped (just called the big blind)
+ *   squeeze - one player opened and another called
+ *   vs3bet  - you opened and got 3-bet; only hands from your opening range
+ *             reach this spot (see `from`)
+ *   vs4bet  - you 3-bet and got 4-bet; only your 3-bet range reaches it
+ * `rest: 'check'` means the leftover frequency is a free check, not a fold.
  */
 (function (root) {
   'use strict';
@@ -203,6 +207,63 @@
       ],
     },
 
+    /* ---------------- facing limpers ---------------- */
+    {
+      id: 'BTN-vs-UTG-limp', group: 'vsLimp', hero: 'BTN', limpers: ['UTG'],
+      title: 'BTN vs UTG limp',
+      setup: 'UTG just calls the big blind (a limp) and it folds to you on the button.',
+      actions: [
+        { id: 'raise', label: 'Raise 4', range: '55+,44:0.6,33:0.4,22:0.4,A7s+,A6s:0.6,A5s,A4s,A3s:0.6,A2s:0.5,KTs+,K9s:0.7,QTs+,Q9s:0.5,JTs,J9s:0.5,T9s,98s,87s:0.5,76s:0.4,65s:0.3,ATo+,A9o:0.6,KJo+,KTo:0.6,QJo,QTo:0.4,JTo:0.4' },
+        { id: 'call', label: 'Call 1', range: '44:0.4,33:0.6,22:0.6,A6s:0.4,A3s:0.4,A2s:0.5,K9s:0.3,K8s:0.6,K7s:0.4,Q9s:0.5,Q8s:0.4,J9s:0.5,J8s:0.3,T8s:0.6,97s:0.5,87s:0.5,86s:0.3,76s:0.6,75s:0.3,65s:0.6,54s:0.6' },
+      ],
+    },
+    {
+      id: 'BTN-vs-2-limps', group: 'vsLimp', hero: 'BTN', limpers: ['UTG', 'HJ'],
+      title: 'BTN vs two limpers',
+      setup: 'UTG and HJ both limp, the cutoff folds. You are on the button.',
+      actions: [
+        { id: 'raise', label: 'Raise 5', range: '66+,55:0.5,ATs+,A9s:0.6,A5s,A4s:0.5,KJs+,KTs:0.7,QJs,QTs:0.6,JTs:0.6,AJo+,ATo:0.6,KQo,KJo:0.5' },
+        { id: 'call', label: 'Call 1', range: '55:0.5,44,33,22,A9s:0.4,A8s-A6s,A4s:0.5,A3s,A2s,KTs:0.3,K9s,K8s:0.6,QTs:0.4,Q9s,JTs:0.4,J9s,T9s,T8s:0.7,98s,97s:0.5,87s,86s:0.4,76s,65s,54s,ATo:0.3,KJo:0.4,QJo:0.5' },
+      ],
+    },
+    {
+      id: 'BB-vs-SB-limp', group: 'vsLimp', hero: 'BB', limpers: ['SB'], rest: 'check',
+      title: 'BB vs SB limp',
+      setup: 'Everyone folds to the small blind, who just completes to 1bb. You can raise or check for free.',
+      actions: [
+        { id: 'raise', label: 'Raise 4', range: 'TT+,99:0.8,88:0.6,77:0.4,A9s+,A8s:0.6,A5s:0.7,A4s:0.6,KTs+,K9s:0.5,K5s:0.4,K4s:0.4,QJs,QTs:0.6,Q6s:0.3,JTs:0.5,J7s:0.3,T7s:0.3,96s:0.3,85s:0.3,74s:0.3,63s:0.3,ATo+,A9o:0.6,A8o:0.5,A7o:0.4,A6o:0.3,A5o:0.5,A4o:0.4,A3o:0.3,A2o:0.3,KQo,KJo:0.8,KTo:0.5,K9o:0.4,K8o:0.3,K7o:0.3,QJo:0.5,Q9o:0.4,Q8o:0.3,J9o:0.3,J8o:0.3,T8o:0.3' },
+      ],
+    },
+
+    /* ---------------- raise and a call (squeeze) ---------------- */
+    {
+      id: 'BTN-vs-HJ-open-CO-call', group: 'squeeze', hero: 'BTN', villain: 'HJ', caller: 'CO',
+      title: 'BTN vs HJ open + CO call',
+      setup: 'HJ opens to 2.5bb and the cutoff calls. You are on the button.',
+      actions: [
+        { id: '3bet', label: '3-bet 11', range: 'QQ+,JJ:0.7,TT:0.3,AKs,AKo,AQs:0.7,AJs:0.3,AQo:0.4,A5s:0.6,A4s:0.5,KQs:0.4,KJs:0.2,76s:0.2,65s:0.2' },
+        { id: 'call', label: 'Call', range: 'JJ:0.3,TT:0.7,99,88,77:0.8,66:0.7,55:0.6,44:0.5,33:0.4,22:0.4,AQs:0.3,AJs:0.7,ATs,A9s:0.6,A8s:0.3,A5s:0.3,A4s:0.3,KQs:0.6,KJs:0.8,KTs:0.8,K9s:0.3,QJs,QTs:0.8,JTs,J9s:0.5,T9s:0.9,98s:0.8,87s:0.7,76s:0.6,65s:0.6,54s:0.4,AQo:0.4,AJo:0.2,KQo:0.3' },
+      ],
+    },
+    {
+      id: 'SB-vs-CO-open-BTN-call', group: 'squeeze', hero: 'SB', villain: 'CO', caller: 'BTN',
+      title: 'SB vs CO open + BTN call',
+      setup: 'CO opens to 2.5bb and the button calls. You are in the small blind.',
+      actions: [
+        { id: '3bet', label: '3-bet 13', range: 'JJ+,TT:0.8,99:0.4,AKs,AQs,AJs:0.8,ATs:0.4,AKo,AQo:0.8,AJo:0.3,KQs:0.8,KJs:0.4,QJs:0.3,A5s:0.8,A4s:0.6,A3s:0.3,KQo:0.3,76s:0.2,65s:0.2' },
+        { id: 'call', label: 'Call', range: 'TT:0.2,99:0.4,88:0.5,77:0.5,66:0.4,55:0.3,AJs:0.2,ATs:0.4,A9s:0.3,KJs:0.4,KTs:0.4,QJs:0.5,QTs:0.4,JTs:0.6,T9s:0.5,98s:0.4,87s:0.3' },
+      ],
+    },
+    {
+      id: 'BB-vs-BTN-open-SB-call', group: 'squeeze', hero: 'BB', villain: 'BTN', caller: 'SB',
+      title: 'BB vs BTN open + SB call',
+      setup: 'The button opens to 2.5bb and the small blind calls. You close the action in the big blind.',
+      actions: [
+        { id: '3bet', label: '3-bet 13', range: 'QQ+,JJ:0.8,TT:0.5,99:0.2,AKs,AKo,AQs,AJs:0.6,ATs:0.3,AQo:0.8,AJo:0.3,KQs:0.7,KJs:0.4,KQo:0.4,A5s:0.7,A4s:0.6,A3s:0.4,K9s:0.2,Q9s:0.2,J9s:0.2,T8s:0.2,97s:0.2,86s:0.2,75s:0.2,64s:0.2,54s:0.2' },
+        { id: 'call', label: 'Call', range: 'JJ:0.2,TT:0.5,99:0.8,88-22,AJs:0.4,ATs:0.7,A9s-A6s,A5s:0.3,A4s:0.4,A3s:0.6,A2s,KQs:0.3,KJs:0.6,KTs,K9s:0.8,K8s,K7s,K6s:0.8,K5s:0.6,K4s:0.4,QJs,QTs,Q9s:0.8,Q8s,Q7s:0.6,Q6s:0.4,JTs,J9s:0.8,J8s,J7s:0.5,T9s,T8s:0.8,T7s:0.7,98s,97s:0.8,96s:0.5,87s,86s:0.8,85s:0.4,76s,75s:0.8,74s:0.3,65s,64s:0.8,54s:0.8,53s:0.6,43s:0.5,AQo:0.2,AJo:0.7,ATo,A9o:0.7,A8o:0.4,KQo:0.6,KJo,KTo:0.8,K9o:0.4,QJo,QTo:0.8,Q9o:0.3,JTo,J9o:0.4,T9o:0.6,98o:0.3' },
+      ],
+    },
+
     /* ---------------- facing a 3-bet ---------------- */
     {
       id: 'UTG-vs-CO-3bet', group: 'vs3bet', hero: 'UTG', villain: 'CO', from: 'rfi-UTG',
@@ -249,12 +310,43 @@
         { id: 'call', label: 'Call', range: 'QQ:0.3,JJ:0.7,TT:0.9,99-77,66:0.9,55:0.8,44:0.6,33:0.5,22:0.4,AKs:0.2,AQs:0.7,AJs,ATs,A9s,A8s:0.8,A7s:0.7,A6s:0.6,A5s:0.5,A4s:0.5,A3s:0.5,A2s:0.4,KQs:0.8,KJs,KTs,K9s,K8s:0.6,K7s:0.4,K6s:0.3,QJs,QTs,Q9s,Q8s:0.4,JTs,J9s,J8s:0.4,T9s,T8s:0.6,98s:0.9,97s:0.3,87s:0.8,76s:0.7,65s:0.6,54s:0.5,AQo:0.7,AJo:0.8,ATo:0.6,A9o:0.3,KQo:0.8,KJo:0.6,KTo:0.4,QJo:0.5,QTo:0.3,JTo:0.4,T9o:0.1' },
       ],
     },
+    /* ---------------- facing a 4-bet ---------------- */
+    {
+      id: 'BTN-3bet-vs-CO-4bet', group: 'vs4bet', hero: 'BTN', villain: 'CO', from: 'BTN-vs-CO',
+      title: 'BTN 3-bet vs CO 4-bet',
+      setup: 'CO opened, you 3-bet to 7.5bb on the button, and CO 4-bets to 22bb.',
+      actions: [
+        { id: 'allin', label: 'All-in 100', range: 'AA,KK,QQ:0.5,AKs:0.6,AKo:0.5,A5s:0.2' },
+        { id: 'call', label: 'Call', range: 'QQ:0.5,JJ:0.8,TT:0.6,99:0.2,AKs:0.4,AKo:0.5,AQs:0.6,AJs:0.2,KQs:0.3,A5s:0.2,A4s:0.1' },
+      ],
+    },
+    {
+      id: 'BB-3bet-vs-BTN-4bet', group: 'vs4bet', hero: 'BB', villain: 'BTN', from: 'BB-vs-BTN',
+      title: 'BB 3-bet vs BTN 4-bet',
+      setup: 'The button opened, you 3-bet to 11bb from the big blind, and the button 4-bets to 25bb.',
+      actions: [
+        { id: 'allin', label: 'All-in 100', range: 'AA,KK,QQ:0.7,JJ:0.2,AKs:0.8,AKo:0.8,A5s:0.3,A4s:0.2' },
+        { id: 'call', label: 'Call', range: 'QQ:0.3,JJ:0.6,TT:0.5,99:0.2,AKs:0.2,AKo:0.2,AQs:0.6,AJs:0.3,KQs:0.4,KJs:0.1,AQo:0.2' },
+      ],
+    },
+    {
+      id: 'SB-3bet-vs-BTN-4bet', group: 'vs4bet', hero: 'SB', villain: 'BTN', from: 'SB-vs-BTN',
+      title: 'SB 3-bet vs BTN 4-bet',
+      setup: 'The button opened, you 3-bet to 11bb from the small blind, and the button 4-bets to 25bb.',
+      actions: [
+        { id: 'allin', label: 'All-in 100', range: 'AA,KK,QQ:0.6,JJ:0.2,AKs:0.7,AKo:0.7,A5s:0.3,A4s:0.2' },
+        { id: 'call', label: 'Call', range: 'QQ:0.4,JJ:0.6,TT:0.5,99:0.2,AKs:0.3,AKo:0.3,AQs:0.5,AJs:0.2,KQs:0.4,AQo:0.2' },
+      ],
+    },
   ];
 
   const GROUPS = [
     { id: 'rfi', label: 'Nobody has raised', blurb: 'Everyone before you folded: raise or fold (an "open")' },
+    { id: 'vsLimp', label: 'Someone limped', blurb: 'A player just called the big blind: raise, call along or fold' },
     { id: 'vsOpen', label: 'Someone raised', blurb: 'A player raised before you: re-raise (3-bet), call or fold' },
+    { id: 'squeeze', label: 'Raise and a call', blurb: 'One player raised and another called: squeeze (3-bet), call or fold' },
     { id: 'vs3bet', label: 'You got re-raised', blurb: 'You raised and someone re-raised: 4-bet, call or fold' },
+    { id: 'vs4bet', label: 'Facing a 4-bet', blurb: 'You 3-bet and got re-raised again: all-in, call or fold' },
   ];
 
   root.GTO = root.GTO || {};

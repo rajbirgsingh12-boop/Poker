@@ -13,7 +13,7 @@ To get a single file you can copy anywhere or use offline, run `npm run build` a
 | Tab | What you practise | Where the answers come from |
 | --- | --- | --- |
 | **Learn** | Blinds, seats, hand notation (AKs / AKo / 77), reading the 13×13 hand chart, a glossary and a step-by-step learning path | – |
-| **Preflop** | 6-player cash game, 100bb deep. Open-raise, facing a raise, facing a re-raise. Mixed strategies, an optional random-number mode, and a "skip easy hands" filter | Simplified versions of rake-free solver results (approximate) |
+| **Preflop** | 6-player cash game, 100bb deep, 34 spots: open-raise, limpers, facing a raise, raise-and-call squeezes, 3-bets and 4-bets. Three strategy styles (pure GTO, exploitative vs typical players, and a middle blend), a side-by-side comparison with the reason they differ, and a deeper analysis of equity, pot odds and opponent ranges after every hand | GTO: simplified versions of rake-free solver results (approximate). Exploitative: rule-based adjustments documented in `js/strategy.js` |
 | **Push/Fold** | Heads-up short stacks (2–20bb): small blind all-in or fold, big blind call or fold. Shows the EV of every decision | **Computed exactly** by this project's Nash solver |
 | **Equity** | Estimate how often one hand beats another, all-in before the flop | **Computed** 169×169 equity table |
 | **GTO Math** | Pot odds, minimum defense frequency, bluff break-even, river bluff share | Exact formulas |

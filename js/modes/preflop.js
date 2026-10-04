@@ -13,18 +13,19 @@
       positions: store.setting('pf.positions', preflop.POSITIONS.slice()),
       borderline: store.setting('pf.borderline', true),
       rng: store.setting('pf.rng', false),
+      style: store.setting('pf.style', 'blend'),
       sess: ui.newSession(),
       spot: null,
     };
     els = {
       spot: h('div', { class: 'card card-pad' }),
       panel: h('div', { class: 'card card-pad' }),
-      notice: h('p', { class: 'empty', hidden: true }, 'No spots match these filters. "You got re-raised" is only practised from UTG, CO, BTN and SB, and the big blind is never the first to raise.'),
+      notice: h('p', { class: 'empty', hidden: true }, 'No spots match these filters. Not every situation exists for every seat: the big blind is never first to raise, and re-raise spots only cover the most common seats. Add more seats or situations.'),
     };
     ui.put(container,
       h('div', { class: 'mode-head' },
         h('h1', null, 'Preflop: which hands to play'),
-        h('p', null, 'You get a seat and two cards before the flop. Pick what a GTO player would do. Six players, everyone starts with 100 big blinds.')),
+        h('p', null, 'You get a seat, two cards and a situation before the flop: limpers, raises, raise-and-call squeezes, 3-bets and 4-bets. Choose how to play it. Six players, everyone starts with 100 big blinds.')),
       config(),
       els.notice,
       h('div', { class: 'work' }, els.spot, els.panel),
@@ -34,6 +35,11 @@
 
   function config() {
     return h('div', { class: 'config' },
+      ui.chipGroup({
+        label: 'Strategy', selected: st.style,
+        options: strategy.STYLES.map((x) => ({ id: x.id, label: x.label, title: x.blurb })),
+        onChange: (v) => { st.style = v; store.setSetting('pf.style', v); deal(); },
+      }),
       ui.chipGroup({
         label: 'Situation', multi: true, selected: st.groups,
         options: preflop.GROUPS.map((g) => ({ id: g.id, label: g.label, title: g.blurb })),
@@ -65,7 +71,7 @@
       return;
     }
     const scn = list[Math.floor(Math.random() * list.length)];
-    const strat = strategy.getStrategy(scn.id);
+    const strat = strategy.getStrategy(scn.id, st.style);
     const idx = strategy.dealHand(strat, { borderlineOnly: st.borderline });
     st.spot = {
       scn, strat, idx,
@@ -89,15 +95,27 @@
     const fold = (s) => { dead += s.bet; s.bet = 0; s.state = 'folded'; };
     if (scn.group === 'rfi') {
       out.forEach((s) => { if (order(s.pos) < order(scn.hero)) fold(s); });
-    } else if (scn.group === 'vsOpen') {
+    } else if (scn.group === 'vsLimp') {
+      const limpers = scn.limpers.map(get);
+      limpers.forEach((l) => { l.state = 'villain'; l.bet = 1; l.blind = false; l.note = 'Limp'; });
+      out.forEach((s) => { if (!limpers.includes(s) && order(s.pos) < order(scn.hero)) fold(s); });
+    } else if (scn.group === 'vsOpen' || scn.group === 'squeeze') {
       const v = get(scn.villain);
       v.state = 'villain'; v.bet = openSize(scn.villain); v.blind = false; v.note = 'Raise';
-      out.forEach((s) => { if (s !== v && order(s.pos) < order(scn.hero)) fold(s); });
+      const caller = scn.caller ? get(scn.caller) : null;
+      if (caller) { caller.state = 'villain'; caller.bet = v.bet; caller.blind = false; caller.note = 'Call'; }
+      out.forEach((s) => { if (s !== v && s !== caller && order(s.pos) < order(scn.hero)) fold(s); });
     } else {
       const v = get(scn.villain);
       const hero = get(scn.hero);
-      hero.bet = openSize(scn.hero); hero.blind = false;
-      v.state = 'villain'; v.bet = threeBetSize(scn); v.blind = false; v.note = '3-bet';
+      if (scn.group === 'vs3bet') {
+        hero.bet = openSize(scn.hero);
+        v.bet = sizeIn(scn.setup, /3-bets to ([\d.]+)bb/, 7.5); v.note = '3-bet';
+      } else {
+        hero.bet = sizeIn(scn.setup, /3-bet to ([\d.]+)bb/, 7.5);
+        v.bet = sizeIn(scn.setup, /4-bets to ([\d.]+)bb/, 22); v.note = '4-bet';
+      }
+      hero.blind = false; v.state = 'villain'; v.blind = false;
       out.forEach((s) => { if (s !== v && s !== hero) fold(s); });
     }
     const hero = get(scn.hero);
@@ -106,10 +124,12 @@
     return { seats: out, pot };
   }
 
-  function threeBetSize(scn) {
-    const m = scn.setup.match(/3-bets to ([\d.]+)bb/);
-    return m ? parseFloat(m[1]) : 7.5;
+  function sizeIn(text, re, fallback) {
+    const m = text.match(re);
+    return m ? parseFloat(m[1]) : fallback;
   }
+
+  const styleName = () => strategy.STYLES.find((x) => x.id === st.style).label;
 
   function groupLabel(id) {
     return preflop.GROUPS.find((g) => g.id === id).label;
@@ -159,7 +179,7 @@
         ? 'Calling here is called limping. Real solvers do limp quite a few hands from the small blind, but this trainer uses a simpler raise-or-fold plan, so it gets half credit.'
         : 'Calling when nobody has raised is called limping, and GTO never does it from this seat. Raising can win the blinds straight away and gives you the lead; limping invites the players behind to raise you, and you win nothing up front. If a hand is good enough to play, raise it. Otherwise fold.';
     } else if (answer.grade.result === 'correct') {
-      msg = chosen.freq >= 0.9 ? `${chosen.label} is the GTO play with ${name}.` : `${name} mixes here, and ${chosen.label.toLowerCase()} is a regular part of it.`;
+      msg = chosen.freq >= 0.9 ? `${chosen.label} is the right play with ${name} (${styleName()} strategy).` : `${name} mixes here, and ${chosen.label.toLowerCase()} is a regular part of it.`;
     } else if (answer.grade.result === 'inaccurate') {
       msg = `${chosen.label} is only played ${ui.pct(chosen.freq)} of the time with ${name} here.`;
     } else {
@@ -173,7 +193,23 @@
       h('p', { class: 'verdict-msg' }, msg),
       ui.strategyBar(actions),
       h('p', { class: 'why' }, h('b', null, `Why: ${family.name}. `), family.why, mixed ? ' ' + explain.MIX_NOTE : ''),
+      styleCompare(),
       deepDive());
+  }
+
+  /** GTO next to the exploitative strategy for this hand, with the reason they differ. */
+  function styleCompare() {
+    const { scn, idx } = st.spot;
+    const gto = strategy.getStrategy(scn.id, 'gto');
+    const ex = strategy.getStrategy(scn.id, 'exploit');
+    const reason = ex.reasons[idx];
+    const row = (label, strat) => h('div', { class: 'cmp-row' }, h('span', { class: 'cmp-label' }, label), ui.strategyBar(strategy.handStrategy(strat, idx)));
+    return h('div', { class: 'cmp' },
+      row('Pure GTO', gto),
+      row('Vs typical players', ex),
+      h('p', { class: 'muted' }, reason
+        ? reason
+        : 'Both strategies play this hand the same way. The Middle strategy sits halfway between the two.'));
   }
 
   function renderPanel() {
@@ -186,14 +222,14 @@
       highlight: locked ? null : idx,
       title: (i) => {
         if (locked) return core.HAND_NAMES[i];
-        if (!strat.inRange[i]) return `${core.HAND_NAMES[i]}: not in your opening range`;
+        if (!strat.inRange[i]) return `${core.HAND_NAMES[i]}: never reaches this spot`;
         return `${core.HAND_NAMES[i]}: ${ui.freqSentence(strategy.handStrategy(strat, i))}`;
       },
     });
     ui.put(els.panel,
       h('div', { class: 'panel-title' },
         h('h2', null, locked ? 'Range' : scn.title),
-        h('span', { class: 'muted' }, scn.group === 'vs3bet' ? 'Greyed hands are not in your opening range' : '')),
+        h('span', { class: 'muted' }, scn.group === 'vs3bet' ? 'Greyed hands are not in your opening range' : scn.group === 'vs4bet' ? 'Greyed hands are not in your 3-bet range' : `${styleName()} strategy`)),
       h('div', { class: 'grid-wrap' }, grid,
         locked ? h('div', { class: 'grid-lock' }, h('div', null, h('b', null, 'Act first'), 'The full strategy for this spot appears here after you answer.')) : null),
       locked ? null : ui.legend(strategy.actionTotals(strat).filter((t) => t.share > 0).reverse()),
@@ -237,10 +273,14 @@
 
   /** The range the opponent is representing in this spot. */
   function villainRange(scn) {
-    if (scn.group === 'vsOpen') return { w: strategy.getStrategy('rfi-' + scn.villain).actions[0].freq, what: `${scn.villain}'s opening range` };
+    if (scn.group === 'vsOpen' || scn.group === 'squeeze') return { w: strategy.getStrategy('rfi-' + scn.villain).actions[0].freq, what: `${scn.villain}'s opening range` };
     if (scn.group === 'vs3bet') {
       const src = preflop.scenarios.find((s) => s.group === 'vsOpen' && s.hero === scn.villain && s.villain === scn.hero);
       if (src) return { w: strategy.getStrategy(src.id).actions[0].freq, what: `${scn.villain}'s 3-bet range` };
+    }
+    if (scn.group === 'vs4bet') {
+      const src = preflop.scenarios.find((s) => s.group === 'vs3bet' && s.hero === scn.villain && s.villain === scn.hero);
+      if (src) return { w: strategy.getStrategy(src.id).actions[0].freq, what: `${scn.villain}'s 4-bet range` };
     }
     return null;
   }
@@ -252,8 +292,12 @@
     const s = strengthTop(idx);
     rows.push(['Hand strength', `${name} wins ${ui.pct(s.eq, 1)} against a random hand, which puts it in the top ${ui.pct(s.top, 0)} of starting hands. It has ${core.comboCount(idx)} combos.`]);
 
-    const totals = strategy.actionTotals(strat).filter((t) => t.share > 0 && t.id !== 'fold');
-    rows.push(['This spot', `${scn.title}: ${totals.map((t) => `${t.label.toLowerCase()} ${ui.pct(t.share, 1)}`).join(', ')} of ${scn.group === 'vs3bet' ? 'the hands you opened' : 'all hands'}, fold the rest.`]);
+    const restId = scn.rest === 'check' ? 'check' : 'fold';
+    const totals = strategy.actionTotals(strat).filter((t) => t.share > 0 && t.id !== restId);
+    const of = scn.group === 'vs3bet' ? 'the hands you opened' : scn.group === 'vs4bet' ? 'the hands you 3-bet' : 'all hands';
+    rows.push(['This spot', `${scn.title}: ${totals.map((t) => `${t.label.toLowerCase()} ${ui.pct(t.share, 1)}`).join(', ')} of ${of}, ${restId} the rest.`]);
+    if (scn.caller) rows.push(['Dead money', `The caller adds ${ui.fmtBB(2.5)} to the pot, so re-raising ("squeezing") wins more when everyone folds. But two opponents means stronger ranges overall, and calling invites a multiway pot where you need a strong hand.`]);
+    if (scn.limpers) rows.push(['Limpers', `A limp usually means a hand too weak to raise. Raising ("isolating") lets you play heads-up, in position, against a weak range. Calling along ("over-limping") is only for hands that want a cheap multiway flop: small pairs and suited connectors.`]);
 
     if (scn.group === 'rfi') {
       const left = explain.POSITIONS[scn.hero].behind;
@@ -271,9 +315,14 @@
       const vil = seatList.find((x) => x.state === 'villain');
       const cost = vil.bet - hero.bet;
       const need = cost / (pot + cost);
-      const verdictTxt = e > need + 0.08 ? 'comfortably more than the price'
-        : e > need ? 'a little more than the price, but being out of position or facing more raises can still make it a fold'
-          : 'less than the price, so calling only works with good position or implied odds';
+      const main = strategy.primaryAction(strat, idx);
+      let verdictTxt;
+      if (e <= need) verdictTxt = 'less than the price, so calling only works with good position or implied odds';
+      else if (main === 'fold' || main === 'check') {
+        verdictTxt = scn.caller
+          ? 'enough on paper, but that is against the raiser alone. With the caller in the pot too, and players still behind you, your real share is much smaller, so it is still a fold'
+          : 'enough on paper, but weak hands win less than their raw equity: they miss most flops and get bet off the pot, so folding is still better';
+      } else verdictTxt = e > need + 0.08 ? 'comfortably more than the price' : 'a little more than the price, so position and playability decide between calling and folding';
       rows.push(['Price to call', `Calling costs ${ui.fmtBB(cost)} to win a pot of ${ui.fmtBB(pot + cost)}, so you need ${ui.pct(need, 1)} equity. ${name} has ${ui.pct(e, 1)}: ${verdictTxt}.`]);
     }
 

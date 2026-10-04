@@ -22,6 +22,7 @@
       case 'fold': return 'give up the hand';
       case 'call': return 'match the bet';
       case 'limp': return 'just match the big blind';
+      case 'check': return 'see the flop for free';
       case 'raise': return `bet ${size} big blinds`;
       case '3bet': return `re-raise to ${size}bb`;
       case '4bet': return `re-raise again to ${size}bb`;
@@ -52,6 +53,17 @@
         SB: 'From the small blind you would have to act first for the rest of the hand, so the strategy mostly re-raises or folds instead of calling.',
       }[scn.hero] || 'You will act after the raiser for the rest of the hand ("in position"), which makes calling more attractive.';
       return `${scn.villain} raised. You can re-raise (a "3-bet"), call to see the flop, or fold. ${vil} ${you}`;
+    }
+    if (scn.group === 'vsLimp') {
+      return scn.rest === 'check'
+        ? 'The small blind only completed the bet ("limped"), so you can see the flop for free by checking, or raise. You will act last after the flop, which is a big advantage.'
+        : `${scn.limpers.join(' and ')} just called the big blind instead of raising ("limping"). Limps usually mean medium or weak hands. You can raise to play against them heads-up, call along, or fold.`;
+    }
+    if (scn.group === 'squeeze') {
+      return `${scn.villain} raised and ${scn.caller} called. A re-raise here is called a "squeeze": the caller usually has a medium hand and folds often. But there are two opponents, so you need a stronger hand than usual to just call.`;
+    }
+    if (scn.group === 'vs4bet') {
+      return `You re-raised and ${scn.villain} re-raised again (a "4-bet"). This is a big pot already. You can move all-in, call, or fold. 4-bets are very strong, so even good hands like AQ often fold.`;
     }
     return `You raised and ${scn.villain} raised again (a "3-bet"). You can re-raise once more (a "4-bet"), call, or fold. Re-raises are strong, so folding a good share of your hands here is normal.`;
   }

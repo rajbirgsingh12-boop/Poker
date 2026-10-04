@@ -12,6 +12,7 @@
       scenario: store.setting('ex.scenario', 'rfi-BTN'),
       stack: store.setting('ex.stack', 10),
       chart: store.setting('ex.chart', false),
+      style: store.setting('ex.style', 'gto'),
       selected: core.handIndex('AKo'),
     };
     if (!preflop.scenarios.some((s) => s.id === st.scenario)) st.scenario = 'rfi-BTN';
@@ -48,7 +49,12 @@
       h('div', { class: 'picker-list' },
         pickBtn('SB shoves', st.source === 'push', () => { st.source = 'push'; store.setSetting('ex.source', 'push'); render(); }),
         pickBtn('BB calls', st.source === 'call', () => { st.source = 'call'; store.setSetting('ex.source', 'call'); render(); })));
-    ui.put(els.picker, ...groups, hu);
+    const styles = h('div', { class: 'picker-group' },
+      h('h3', null, 'Strategy'),
+      h('div', { class: 'picker-list' }, strategy.STYLES.map((x) => pickBtn(x.label, st.style === x.id, () => {
+        st.style = x.id; store.setSetting('ex.style', x.id); render();
+      }))));
+    ui.put(els.picker, styles, ...groups, hu);
   }
 
   function nearestStack(s) {
@@ -64,7 +70,7 @@
 
   function renderMain() {
     if (st.source === 'preflop') {
-      const strat = strategy.getStrategy(st.scenario);
+      const strat = strategy.getStrategy(st.scenario, st.style);
       const scn = strat.scenario;
       ui.put(els.main,
         h('div', { class: 'panel-title' },
@@ -141,7 +147,7 @@
       h('p', { class: 'why' }, h('b', null, explain.handFamily(i).name + '. '), explain.handFamily(i).why),
     ];
     if (st.source === 'preflop') {
-      const strat = strategy.getStrategy(st.scenario);
+      const strat = strategy.getStrategy(st.scenario, st.style);
       if (!strat.inRange[i]) {
         ui.put(els.detail, ...head, h('p', null, 'This hand is not in your opening range, so it never reaches this spot.'));
         return;

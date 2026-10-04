@@ -26,8 +26,8 @@ test('every hand has action frequencies summing to at most 100%', () => {
   }
 });
 
-test('3-bet defence only uses hands from the opening range', () => {
-  for (const s of preflop.scenarios.filter((x) => x.group === 'vs3bet')) {
+test('re-raise defence only uses hands that reach the spot', () => {
+  for (const s of preflop.scenarios.filter((x) => x.from)) {
     const strat = strategy.getStrategy(s.id);
     for (let i = 0; i < 169; i++) {
       const cont = strat.actions.filter((a) => a.id !== 'fold').reduce((acc, a) => acc + a.freq[i], 0);
@@ -53,7 +53,9 @@ test('opening ranges widen with position and sit in solver-like bands', () => {
 test('premium hands never fold and trash never continues', () => {
   for (const s of preflop.scenarios) {
     const strat = strategy.getStrategy(s.id);
-    const fold = strat.actions.find((a) => a.id === 'fold').freq;
+    const rest = strat.actions.find((a) => a.id === 'fold' || a.id === 'check');
+    if (rest.id === 'check') continue; // nobody folds when checking is free
+    const fold = rest.freq;
     assert.equal(fold[core.handIndex('AA')], 0, `${s.id} folds AA`);
     assert.equal(fold[core.handIndex('KK')], 0, `${s.id} folds KK`);
     if (s.hero !== 'BB' && s.hero !== 'SB' && s.hero !== 'BTN')
@@ -68,4 +70,36 @@ test('big blind defends wider against later positions', () => {
   };
   const order = ['BB-vs-UTG', 'BB-vs-HJ', 'BB-vs-CO', 'BB-vs-BTN'].map(defend);
   for (let k = 1; k < order.length; k++) assert.ok(order[k] > order[k - 1], order.join(' < '));
+});
+
+test('every style gives every hand frequencies that sum to exactly 100%', () => {
+  for (const s of preflop.scenarios) {
+    for (const style of ['gto', 'blend', 'exploit']) {
+      const strat = strategy.getStrategy(s.id, style);
+      for (let i = 0; i < 169; i++) {
+        const sum = strat.actions.reduce((a, x) => a + x.freq[i], 0);
+        assert.ok(Math.abs(sum - 1) < 1e-9, `${s.id}/${style}: ${core.HAND_NAMES[i]} sums to ${sum}`);
+        assert.ok(strat.actions.every((x) => x.freq[i] >= -1e-12), `${s.id}/${style}: negative frequency`);
+      }
+    }
+  }
+});
+
+test('the middle strategy is halfway between GTO and the exploitative one', () => {
+  const g = strategy.getStrategy('BB-vs-BTN', 'gto'), b = strategy.getStrategy('BB-vs-BTN', 'blend'), e = strategy.getStrategy('BB-vs-BTN', 'exploit');
+  for (let k = 0; k < g.actions.length; k++)
+    for (let i = 0; i < 169; i++) assert.ok(Math.abs(b.actions[k].freq[i] - (g.actions[k].freq[i] + e.actions[k].freq[i]) / 2) < 1e-12);
+});
+
+test('exploitative adjustments follow the stated rules and explain themselves', () => {
+  const H = core.handIndex;
+  const e = strategy.getStrategy('BB-vs-BTN', 'exploit');
+  assert.equal(e.actions.find((a) => a.id === '3bet').freq[H('A5s')], 0); // no light 3-bet bluffs
+  assert.ok(e.reasons[H('A5s')]);
+  const v = strategy.getStrategy('UTG-vs-CO-3bet', 'exploit');
+  assert.equal(v.actions.find((a) => a.id === '4bet').freq[H('A5s')], 0); // no 4-bet bluffs
+  assert.equal(v.actions.find((a) => a.id === '4bet').freq[H('AA')], 1);
+  const free = strategy.getStrategy('BB-vs-SB-limp', 'gto');
+  assert.ok(!free.actions.some((a) => a.id === 'fold'));
+  assert.equal(strategy.getStrategy('BB-vs-BTN', 'gto').reasons[H('A5s')], null);
 });

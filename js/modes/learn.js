@@ -36,6 +36,12 @@
       preset: { 'pf.groups': ['vsOpen'], 'pf.positions': ['BTN', 'BB'], 'pf.borderline': true, 'pf.rng': false },
     },
     {
+      title: 'Advanced: limpers, squeezes and 4-bets',
+      body: 'Multi-player spots: someone limps, a raise and a call before you, or a 4-bet after your 3-bet. Uses the Middle strategy with easy hands skipped.',
+      go: 'preflop', cta: 'Practise advanced spots',
+      preset: { 'pf.groups': ['vsLimp', 'squeeze', 'vs3bet', 'vs4bet'], 'pf.positions': ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'], 'pf.borderline': true, 'pf.style': 'blend' },
+    },
+    {
       title: 'Learn the bet-size maths',
       body: 'Pot odds tell you when a call is worth it. Three or four numbers cover most of poker maths.',
       go: 'math', cta: 'Start with pot odds',
@@ -101,6 +107,11 @@
             h('li', null, h('i', { style: { background: 'var(--z-offsuit)' } }), h('span', null, h('b', null, 'Bottom-left: offsuit hands'), ' (AKo, T9o …)'))),
           h('p', null, 'In the trainers each square is coloured by what to do: ', h('b', { class: 'txt-aggr' }, 'red = raise'), ', ', h('b', { class: 'txt-call' }, 'green = call'), ', ', h('b', { class: 'txt-fold' }, 'blue = fold'), '. A square split between colours is a mixed hand.'),
         ], zoneGrid()),
+        lesson('GTO, exploits and the middle ground', [
+          h('p', null, h('b', null, 'Pure GTO'), ' is unbeatable: it works against anyone, but it does not take advantage of mistakes.'),
+          h('p', null, h('b', null, 'Vs typical players'), ' adjusts for how most low-stakes players actually play: they call too much, rarely fold to re-raises, and almost never re-raise as a bluff. So you bluff less, value-raise more, and fold more when they re-raise you.'),
+          h('p', null, h('b', null, 'Middle'), ' (the default) sits halfway between the two. After every hand the trainer shows the GTO and the exploitative play side by side, with the reason they differ.'),
+        ], null),
         lesson('Why are some hands "mixed"?', [
           h('p', null, 'Sometimes the best strategy plays a hand two ways, for example raising it 60% of the time and folding 40%. That happens when both choices are worth about the same. Mixing keeps opponents guessing.'),
           h('p', null, 'You do not need to be exact. In the trainers, any action used at least a quarter of the time counts as correct. If you want to practise mixing precisely, turn on ', h('b', null, 'Random number'), ': you get a number from 1 to 100, and low numbers mean the aggressive play.'),
