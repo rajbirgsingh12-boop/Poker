@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>GTO Poker Trainer</title>
+  <meta name="description" content="Train game theory optimal poker: 6-max preflop ranges, heads-up push/fold Nash equilibria, equity estimation and GTO math.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="brand-chip" aria-hidden="true"></span>
+        <span class="brand-name">GTO <span>Trainer</span></span>
+      </div>
+      <nav class="tabs" id="tabs" role="tablist" aria-label="Training modes"></nav>
+      <button class="icon-btn" id="theme" type="button" aria-label="Switch light or dark theme" title="Switch theme">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main class="wrap" id="view"></main>
+
+  <!-- build:scripts -->
+  <script src="js/core.js"></script>
+  <script src="js/data/preflop.js"></script>
+  <script src="js/data/equity.js"></script>
+  <script src="js/data/pushfold.js"></script>
+  <script src="js/strategy.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/explain.js"></script>
+  <script src="js/modes/learn.js"></script>
+  <script src="js/modes/preflop.js"></script>
+  <script src="js/modes/pushfold.js"></script>
+  <script src="js/modes/equity.js"></script>
+  <script src="js/modes/math.js"></script>
+  <script src="js/modes/explorer.js"></script>
+  <script src="js/modes/stats.js"></script>
+  <script src="js/app.js"></script>
+  <!-- /build:scripts -->
+</body>
+</html>
