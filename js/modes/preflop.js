@@ -142,7 +142,7 @@
   }
 
   function verdict() {
-    const { strat, idx, roll, answer } = st.spot;
+    const { scn, strat, idx, roll, answer } = st.spot;
     const actions = strategy.handStrategy(strat, idx);
     const chosen = actions.find((a) => a.id === answer.id);
     const name = core.HAND_NAMES[idx];
@@ -154,6 +154,10 @@
       msg = answer.grade.result === 'correct'
         ? `Your number ${roll} lands in the ${target.label} band.`
         : `Your number ${roll} lands in the ${target.label} band. ${chosen.freq > 0 ? `${chosen.label} is still part of the mix (${ui.pct(chosen.freq)}).` : `${chosen.label} is never played with ${name} here.`}`;
+    } else if (answer.id === 'limp') {
+      msg = scn.hero === 'SB'
+        ? 'Calling here is called limping. Real solvers do limp quite a few hands from the small blind, but this trainer uses a simpler raise-or-fold plan, so it gets half credit.'
+        : 'Calling when nobody has raised is called limping, and GTO never does it from this seat. Raising can win the blinds straight away and gives you the lead; limping invites the players behind to raise you, and you win nothing up front. If a hand is good enough to play, raise it. Otherwise fold.';
     } else if (answer.grade.result === 'correct') {
       msg = chosen.freq >= 0.9 ? `${chosen.label} is the GTO play with ${name}.` : `${name} mixes here, and ${chosen.label.toLowerCase()} is a regular part of it.`;
     } else if (answer.grade.result === 'inaccurate') {
@@ -168,7 +172,8 @@
         h('button', { class: 'btn', type: 'button', onClick: deal }, 'Next hand', h('kbd', null, 'Space'))),
       h('p', { class: 'verdict-msg' }, msg),
       ui.strategyBar(actions),
-      h('p', { class: 'why' }, h('b', null, `Why: ${family.name}. `), family.why, mixed ? ' ' + explain.MIX_NOTE : ''));
+      h('p', { class: 'why' }, h('b', null, `Why: ${family.name}. `), family.why, mixed ? ' ' + explain.MIX_NOTE : ''),
+      deepDive());
   }
 
   function renderPanel() {
@@ -191,15 +196,110 @@
         h('span', { class: 'muted' }, scn.group === 'vs3bet' ? 'Greyed hands are not in your opening range' : '')),
       h('div', { class: 'grid-wrap' }, grid,
         locked ? h('div', { class: 'grid-lock' }, h('div', null, h('b', null, 'Act first'), 'The full strategy for this spot appears here after you answer.')) : null),
-      locked ? null : ui.legend(strategy.actionTotals(strat).slice().reverse()),
+      locked ? null : ui.legend(strategy.actionTotals(strat).filter((t) => t.share > 0).reverse()),
       h('p', { class: 'grid-key' }, 'Diagonal: pairs · top-right: suited · bottom-left: offsuit. Strongest hands are top-left.'));
+  }
+
+  /* ---------- deeper analysis ---------- */
+  let EQ = null;
+  const eqTable = () => (EQ ||= core.decodeEquity(root.GTO.equityUpper));
+  const pairW = new Map();
+  function comboPairs(i, j) {
+    const k = i * 169 + j;
+    if (!pairW.has(k)) pairW.set(k, core.comboPairs(i, j));
+    return pairW.get(k);
+  }
+
+  /** Equity of hand i against a weighted range, with exact card removal. */
+  function eqVsRange(i, w) {
+    const eq = eqTable();
+    let num = 0, den = 0;
+    for (let j = 0; j < 169; j++) {
+      if (!w[j]) continue;
+      const n = w[j] * comboPairs(i, j);
+      num += n * eq[i][j];
+      den += n;
+    }
+    return den ? num / den : 0.5;
+  }
+
+  let rankCache = null;
+  /** Share of all starting hands that have more equity than hand i against a random hand. */
+  function strengthTop(i) {
+    if (!rankCache) {
+      const all = new Float64Array(169).fill(1);
+      rankCache = Array.from({ length: 169 }, (_, k) => eqVsRange(k, all));
+    }
+    let better = 0;
+    for (let k = 0; k < 169; k++) if (rankCache[k] > rankCache[i]) better += core.comboCount(k);
+    return { eq: rankCache[i], top: (better + core.comboCount(i)) / 1326 };
+  }
+
+  /** The range the opponent is representing in this spot. */
+  function villainRange(scn) {
+    if (scn.group === 'vsOpen') return { w: strategy.getStrategy('rfi-' + scn.villain).actions[0].freq, what: `${scn.villain}'s opening range` };
+    if (scn.group === 'vs3bet') {
+      const src = preflop.scenarios.find((s) => s.group === 'vsOpen' && s.hero === scn.villain && s.villain === scn.hero);
+      if (src) return { w: strategy.getStrategy(src.id).actions[0].freq, what: `${scn.villain}'s 3-bet range` };
+    }
+    return null;
+  }
+
+  function deepDive() {
+    const { scn, strat, idx } = st.spot;
+    const name = core.HAND_NAMES[idx];
+    const rows = [];
+    const s = strengthTop(idx);
+    rows.push(['Hand strength', `${name} wins ${ui.pct(s.eq, 1)} against a random hand, which puts it in the top ${ui.pct(s.top, 0)} of starting hands. It has ${core.comboCount(idx)} combos.`]);
+
+    const totals = strategy.actionTotals(strat).filter((t) => t.share > 0 && t.id !== 'fold');
+    rows.push(['This spot', `${scn.title}: ${totals.map((t) => `${t.label.toLowerCase()} ${ui.pct(t.share, 1)}`).join(', ')} of ${scn.group === 'vs3bet' ? 'the hands you opened' : 'all hands'}, fold the rest.`]);
+
+    if (scn.group === 'rfi') {
+      const left = explain.POSITIONS[scn.hero].behind;
+      // chance at least one player behind holds a hand in the top ~15% (a strong hand), ignoring card removal
+      const strong = 1 - Math.pow(1 - 0.15, left);
+      rows.push(['Players behind', `${left} player${left === 1 ? '' : 's'} still act after you. The chance at least one of them holds a top-15% hand is about ${ui.pct(strong)}. That is why early seats open fewer hands.`]);
+    }
+
+    const vr = villainRange(scn);
+    if (vr) {
+      const e = eqVsRange(idx, vr.w);
+      rows.push(['Vs their range', `Against ${vr.what} (${ui.pct(core.rangePercent(vr.w) / 100, 1)} of hands), ${name} has ${ui.pct(e, 1)} equity if all the cards are dealt.`]);
+      const { seats: seatList, pot } = seats(scn);
+      const hero = seatList.find((x) => x.state === 'hero');
+      const vil = seatList.find((x) => x.state === 'villain');
+      const cost = vil.bet - hero.bet;
+      const need = cost / (pot + cost);
+      const verdictTxt = e > need + 0.08 ? 'comfortably more than the price'
+        : e > need ? 'a little more than the price, but being out of position or facing more raises can still make it a fold'
+          : 'less than the price, so calling only works with good position or implied odds';
+      rows.push(['Price to call', `Calling costs ${ui.fmtBB(cost)} to win a pot of ${ui.fmtBB(pot + cost)}, so you need ${ui.pct(need, 1)} equity. ${name} has ${ui.pct(e, 1)}: ${verdictTxt}.`]);
+    }
+
+    const r = Math.floor(idx / 13), c = idx % 13;
+    const near = [[r, c + 1], [r + 1, c], [r, c - 1], [r - 1, c]]
+      .filter(([a, b]) => a >= 0 && a < 13 && b >= 0 && b < 13)
+      .map(([a, b]) => a * 13 + b)
+      .filter((j) => strat.inRange[j])
+      .map((j) => {
+        const acts = strategy.handStrategy(strat, j).filter((a) => a.freq > 0.001);
+        return `${core.HAND_NAMES[j]}: ${acts.map((a) => `${a.label.toLowerCase()} ${ui.pct(a.freq)}`).join(' / ')}`;
+      });
+    if (near.length) rows.push(['Nearby hands', near.join(' · ') + '. Hands right next to each other on the chart play similarly, so learn the borders.']);
+
+    return h('details', { class: 'deep', open: true },
+      h('summary', null, 'Deeper analysis'),
+      h('dl', { class: 'deep-list' }, rows.flatMap(([k, v]) => [h('dt', null, k), h('dd', null, v)])));
   }
 
   function answerWith(id) {
     const sp = st.spot;
     if (!sp || sp.answer) return;
     const actions = strategy.handStrategy(sp.strat, sp.idx);
-    const grade = strategy.grade(actions, id, sp.roll);
+    let grade = strategy.grade(actions, id, sp.roll);
+    // Real solvers do limp some hands from the small blind; this chart simplifies to raise-or-fold.
+    if (id === 'limp' && sp.scn.hero === 'SB') grade = { ...grade, result: 'inaccurate', score: 0.5 };
     sp.answer = { id, grade };
     ui.bumpSession(st.sess, grade.score);
     store.record('preflop', sp.scn.title, grade.score, `${sp.scn.title} · ${core.HAND_NAMES[sp.idx]}`);

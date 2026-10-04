@@ -77,7 +77,7 @@
           onCell: select,
           title: (i) => (strat.inRange[i] ? `${core.HAND_NAMES[i]}: ${ui.freqSentence(strategy.handStrategy(strat, i))}` : `${core.HAND_NAMES[i]}: not in the opening range`),
         }),
-        ui.legend(strategy.actionTotals(strat).slice().reverse()),
+        ui.legend(strategy.actionTotals(strat).filter((t) => t.share > 0).reverse()),
         h('p', { class: 'grid-key' }, 'Diagonal: pairs · top-right: suited · bottom-left: offsuit. Split squares are mixed hands.'));
       return;
     }

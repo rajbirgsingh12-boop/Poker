@@ -21,6 +21,7 @@
     switch (id) {
       case 'fold': return 'give up the hand';
       case 'call': return 'match the bet';
+      case 'limp': return 'just match the big blind';
       case 'raise': return `bet ${size} big blinds`;
       case '3bet': return `re-raise to ${size}bb`;
       case '4bet': return `re-raise again to ${size}bb`;

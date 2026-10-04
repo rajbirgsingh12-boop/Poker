@@ -484,3 +484,10 @@ table.data td { padding: 8px 10px; border-bottom: 1px solid var(--line); white-s
 .why { font-size: 14px; color: var(--ink); }
 .why b { color: var(--brass); font-weight: 600; }
 .grid-key { margin-top: 8px; font-size: 13px; color: var(--muted); }
+
+.deep { border-top: 1px solid var(--line); padding-top: 10px; }
+.deep summary { cursor: pointer; font-family: var(--font-display); font-weight: 700; font-size: 18px; }
+.deep-list { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 14px; margin: 10px 0 0; font-size: 14px; }
+.deep-list dt { font-weight: 600; color: var(--brass); }
+.deep-list dd { margin: 0; }
+@media (max-width: 600px) { .deep-list { grid-template-columns: minmax(0, 1fr); gap: 2px; } .deep-list dd { margin-bottom: 8px; } }

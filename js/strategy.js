@@ -29,6 +29,8 @@
       for (const a of actions) s += a.freq[i];
       fold[i] = Math.max(0, 1 - s);
     }
+    // Calling when nobody has raised ("limping") is offered so players can try it; GTO never does it here.
+    if (scn.group === 'rfi') actions.push({ id: 'limp', label: 'Call 1', kind: 'call', freq: new Float64Array(169) });
     actions.push({ id: 'fold', label: 'Fold', kind: 'fold', freq: fold });
 
     let inRange;
