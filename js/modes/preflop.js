@@ -9,8 +9,8 @@
 
   function mount(container) {
     st = {
-      groups: store.setting('pf.groups', ['rfi']),
-      positions: store.setting('pf.positions', preflop.POSITIONS.slice()),
+      groups: store.setting('pf.groups.v2', preflop.GROUPS.map((g) => g.id)),
+      positions: store.setting('pf.positions.v2', preflop.POSITIONS.slice()),
       borderline: store.setting('pf.borderline', true),
       rng: store.setting('pf.rng', false),
       style: store.setting('pf.style', 'blend'),
@@ -18,6 +18,7 @@
       spot: null,
     };
     els = {
+      root: container,
       spot: h('div', { class: 'card card-pad' }),
       panel: h('div', { class: 'card card-pad' }),
       notice: h('p', { class: 'empty', hidden: true }, 'No spots match these filters. Not every situation exists for every seat: the big blind is never first to raise, and re-raise spots only cover the most common seats. Add more seats or situations.'),
@@ -25,7 +26,7 @@
     ui.put(container,
       h('div', { class: 'mode-head' },
         h('h1', null, 'Preflop: which hands to play'),
-        h('p', null, 'You get a seat, two cards and a situation before the flop: limpers, raises, raise-and-call squeezes, 3-bets and 4-bets. Choose how to play it. Six players, everyone starts with 100 big blinds.')),
+        h('p', null, 'Every hand deals a random seat, situation and two cards before the flop: limpers, raises, raise-and-call squeezes, 3-bets and 4-bets. Choose how to play it. Six players, everyone starts with 100 big blinds.')),
       config(),
       els.notice,
       h('div', { class: 'work' }, els.spot, els.panel),
@@ -35,6 +36,16 @@
 
   function config() {
     return h('div', { class: 'config' },
+      h('div', { class: 'ctl' },
+        h('span', { class: 'ctl-label' }, 'Quick start'),
+        h('button', {
+          class: 'btn', type: 'button', title: 'Every situation and every seat, picked at random each hand',
+          onClick: () => {
+            store.setSetting('pf.groups.v2', preflop.GROUPS.map((g) => g.id));
+            store.setSetting('pf.positions.v2', preflop.POSITIONS.slice());
+            mount(els.root);
+          },
+        }, 'Mix everything')),
       ui.chipGroup({
         label: 'Strategy', selected: st.style,
         options: strategy.STYLES.map((x) => ({ id: x.id, label: x.label, title: x.blurb })),
@@ -43,12 +54,12 @@
       ui.chipGroup({
         label: 'Situation', multi: true, selected: st.groups,
         options: preflop.GROUPS.map((g) => ({ id: g.id, label: g.label, title: g.blurb })),
-        onChange: (v) => { st.groups = v; store.setSetting('pf.groups', v); deal(); },
+        onChange: (v) => { st.groups = v; store.setSetting('pf.groups.v2', v); deal(); },
       }),
       ui.chipGroup({
         label: 'Your seat', multi: true, selected: st.positions,
         options: preflop.POSITIONS.map((p) => ({ id: p, label: p, title: `${explain.POSITIONS[p].name}: ${explain.POSITIONS[p].short}` })),
-        onChange: (v) => { st.positions = v; store.setSetting('pf.positions', v); deal(); },
+        onChange: (v) => { st.positions = v; store.setSetting('pf.positions.v2', v); deal(); },
       }),
       h('div', { class: 'ctl' },
         h('span', { class: 'ctl-label' }, 'Options'),
@@ -70,7 +81,16 @@
       st.spot = null;
       return;
     }
-    const scn = list[Math.floor(Math.random() * list.length)];
+    // Pick a situation type first so every type comes up equally often, then a spot within it,
+    // and avoid dealing the exact same spot twice in a row.
+    const groups = [...new Set(list.map((x) => x.group))];
+    let scn;
+    for (let tries = 0; tries < 6; tries++) {
+      const g = groups[Math.floor(Math.random() * groups.length)];
+      const inGroup = list.filter((x) => x.group === g);
+      scn = inGroup[Math.floor(Math.random() * inGroup.length)];
+      if (!st.spot || scn.id !== st.spot.scn.id || list.length === 1) break;
+    }
     const strat = strategy.getStrategy(scn.id, st.style);
     const idx = strategy.dealHand(strat, { borderlineOnly: st.borderline });
     st.spot = {

@@ -15,13 +15,13 @@
       title: 'Open-raise from the late seats',
       body: 'Everyone folds to you on the button or in the cutoff. Raise or fold? The easiest spot to learn first.',
       go: 'preflop', cta: 'Practise late opens',
-      preset: { 'pf.groups': ['rfi'], 'pf.positions': ['CO', 'BTN'], 'pf.borderline': false, 'pf.rng': false },
+      preset: { 'pf.groups.v2': ['rfi'], 'pf.positions.v2': ['CO', 'BTN'], 'pf.borderline': false, 'pf.rng': false },
     },
     {
       title: 'Open-raise from every seat',
       body: 'Same decision from all positions. Notice how much tighter you play when more players are left to act.',
       go: 'preflop', cta: 'Practise all opens',
-      preset: { 'pf.groups': ['rfi'], 'pf.positions': ['UTG', 'HJ', 'CO', 'BTN', 'SB'], 'pf.borderline': true, 'pf.rng': false },
+      preset: { 'pf.groups.v2': ['rfi'], 'pf.positions.v2': ['UTG', 'HJ', 'CO', 'BTN', 'SB'], 'pf.borderline': true, 'pf.rng': false },
     },
     {
       title: 'Short stacks: all-in or fold',
@@ -33,13 +33,13 @@
       title: 'When someone raised before you',
       body: 'Re-raise, call or fold from the big blind and the button, the two seats that face raises most.',
       go: 'preflop', cta: 'Practise defending',
-      preset: { 'pf.groups': ['vsOpen'], 'pf.positions': ['BTN', 'BB'], 'pf.borderline': true, 'pf.rng': false },
+      preset: { 'pf.groups.v2': ['vsOpen'], 'pf.positions.v2': ['BTN', 'BB'], 'pf.borderline': true, 'pf.rng': false },
     },
     {
       title: 'Advanced: limpers, squeezes and 4-bets',
       body: 'Multi-player spots: someone limps, a raise and a call before you, or a 4-bet after your 3-bet. Uses the Middle strategy with easy hands skipped.',
       go: 'preflop', cta: 'Practise advanced spots',
-      preset: { 'pf.groups': ['vsLimp', 'squeeze', 'vs3bet', 'vs4bet'], 'pf.positions': ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'], 'pf.borderline': true, 'pf.style': 'blend' },
+      preset: { 'pf.groups.v2': ['vsLimp', 'squeeze', 'vs3bet', 'vs4bet'], 'pf.positions.v2': ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'], 'pf.borderline': true, 'pf.style': 'blend' },
     },
     {
       title: 'Learn the bet-size maths',
